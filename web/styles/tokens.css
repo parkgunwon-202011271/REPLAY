@@ -1,0 +1,57 @@
+/* 리플 레이더 디자인 토큰 — Figma 토큰(design/tokens.json)과 같은 이름·값을 유지합니다. */
+:root {
+  /* 색: 바탕·면·글자 */
+  --color-bg: #f3f5f7;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #eaeef2;
+  --color-ink: #14202b;
+  --color-muted: #5d6b78;
+  --color-line: #d6dde4;
+  /* 색: 의미(영향·상태) */
+  --color-harm: #d6453d;        /* 피해 예상 */
+  --color-gain: #1f7ae0;        /* 수혜 예상 */
+  --color-watch: #c98a00;       /* 미반영·주목 */
+  --color-odd: #8a5cc2;         /* 반대로 움직임 */
+  --color-external: #8796a5;    /* 비상장·해외·공공 */
+  --color-ring: rgba(20, 32, 43, 0.07);
+
+  /* 글꼴 */
+  --font-display: "Gothic A1", "IBM Plex Sans KR", "Apple SD Gothic Neo", sans-serif;
+  --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --text-hero: 44px;
+  --text-h1: 26px;
+  --text-h2: 18px;
+  --text-h3: 15px;
+  --text-body: 14px;
+  --text-small: 12.5px;
+  --text-caption: 11.5px;
+
+  /* 간격·모서리·그림자 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 40px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-pill: 999px;
+  --shadow-float: 0 6px 24px rgba(20, 32, 43, 0.10);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #0e151c; --color-surface: #151f29; --color-surface-sunken: #101820; --color-ink: #e6edf3;
+    --color-muted: #93a3b2; --color-line: #26333f; --color-harm: #ff6b5e; --color-gain: #4ea3ff;
+    --color-watch: #f2b630; --color-odd: #b48ce8; --color-external: #6f8191; --color-ring: rgba(230, 237, 243, 0.06);
+    --shadow-float: 0 6px 24px rgba(0, 0, 0, 0.45);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --color-bg: #0e151c; --color-surface: #151f29; --color-surface-sunken: #101820; --color-ink: #e6edf3;
+  --color-muted: #93a3b2; --color-line: #26333f; --color-harm: #ff6b5e; --color-gain: #4ea3ff;
+  --color-watch: #f2b630; --color-odd: #b48ce8; --color-external: #6f8191; --color-ring: rgba(230, 237, 243, 0.06);
+  --shadow-float: 0 6px 24px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}

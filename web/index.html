@@ -1,0 +1,126 @@
+<title>리플 레이더</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&family=Gothic+A1:wght@800;900&display=swap">
+<link rel="stylesheet" href="styles/tokens.css">
+<link rel="stylesheet" href="styles/app.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+
+<div class="app">
+  <div class="topbar">
+    <a class="brand" href="#home" aria-label="리플 레이더 홈" style="color:inherit;text-decoration:none">
+      <svg class="brand-mark" viewBox="0 0 28 28" aria-hidden="true">
+        <circle cx="14" cy="14" r="12.5" fill="none" stroke="var(--color-line)" stroke-width="1.5"/>
+        <circle cx="14" cy="14" r="8" fill="none" stroke="var(--color-watch)" stroke-width="1.5"/>
+        <circle cx="14" cy="14" r="3.5" fill="var(--color-harm)"/>
+      </svg>
+      <span class="brand-name">리플 레이더</span>
+    </a>
+    <nav class="nav" aria-label="화면">
+      <a class="c-button c-button--nav" href="#home" data-nav="home">홈</a>
+      <a class="c-button c-button--nav" href="#map" data-nav="map">파급 지도</a>
+      <a class="c-button c-button--nav" href="#alerts" data-nav="alerts">경보</a>
+    </nav>
+  </div>
+
+  <!-- 홈 -->
+  <section class="view" id="view-home">
+    <div class="hero">
+      <div class="hero__copy">
+        <h1 class="hero__title">사건 하나가<br><em>Z까지</em> 번집니다.</h1>
+        <p class="hero__lead">공장 화재, 수출 규제, 계약 해지. 리플 레이더는 공시에서 찾은 기업 연결을 따라 영향이 어디까지 퍼지는지 계산하고, 각 기업 주가에 그 영향이 반영됐는지 날짜별로 보여 줍니다.</p>
+        <div class="hero__stats" id="hero-stats"></div>
+        <div><a class="c-button c-button--primary" href="#map">파급 지도 열기</a></div>
+      </div>
+      <div class="hero__visual" aria-hidden="true">
+        <svg viewBox="0 0 360 300">
+          <g fill="none" stroke="var(--color-line)" stroke-width="1.2">
+            <circle cx="180" cy="150" r="40"/><circle cx="180" cy="150" r="88"/><circle cx="180" cy="150" r="136"/>
+          </g>
+          <g stroke="var(--color-muted)" stroke-width="1" opacity="0.5">
+            <line x1="180" y1="150" x2="122" y2="96"/><line x1="180" y1="150" x2="250" y2="112"/><line x1="180" y1="150" x2="206" y2="232"/>
+            <line x1="122" y1="96" x2="64" y2="70"/><line x1="250" y1="112" x2="310" y2="72"/><line x1="206" y1="232" x2="266" y2="268"/>
+            <line x1="122" y1="96" x2="78" y2="190"/><line x1="250" y1="112" x2="318" y2="170"/>
+          </g>
+          <circle cx="180" cy="150" r="14" fill="var(--color-harm)"/>
+          <circle cx="122" cy="96" r="9" fill="var(--color-harm)"/><circle cx="250" cy="112" r="10" fill="var(--color-gain)"/>
+          <circle cx="206" cy="232" r="8" fill="var(--color-harm)" fill-opacity="0.55"/>
+          <circle cx="64" cy="70" r="7" fill="none" stroke="var(--color-watch)" stroke-width="2.5"/>
+          <circle cx="310" cy="72" r="6" fill="var(--color-gain)" fill-opacity="0.55"/>
+          <circle cx="266" cy="268" r="6" fill="none" stroke="var(--color-watch)" stroke-width="2.5"/>
+          <circle cx="78" cy="190" r="6" fill="var(--color-harm)"/><circle cx="318" cy="170" r="5" fill="none" stroke="var(--color-watch)" stroke-width="2.5"/>
+          <text x="180" y="154" text-anchor="middle" font-size="9" fill="#fff" font-family="var(--font-body)">사건</text>
+          <text x="180" y="20" text-anchor="middle" font-size="10" fill="var(--color-muted)" font-family="var(--font-body)">1차 · 2차 · 3차 연결</text>
+        </svg>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:var(--space-3)">
+      <h2 class="section-title">사건 다시 보기</h2>
+      <div class="cards" id="event-cards"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:var(--space-3);margin-top:var(--space-5)">
+      <h2 class="section-title">어떻게 계산하나</h2>
+      <div class="steps">
+        <div class="c-panel c-step"><span class="c-step__k">1 · 공시</span><span class="c-step__t">연결을 찾습니다</span><span class="c-step__d">공급계약 공시의 거래 상대, 제3자배정 투자, 타법인 출자, 같은 업종, 주가 동조로 기업 사이 선을 만듭니다.</span></div>
+        <div class="c-panel c-step"><span class="c-step__k">2 · 사건</span><span class="c-step__t">출발점을 잡습니다</span><span class="c-step__d">생산중단·재해·영업정지 공시나 외부 사건(수출 규제 등)을 사건 노드로 둡니다.</span></div>
+        <div class="c-panel c-step"><span class="c-step__k">3 · 파급</span><span class="c-step__t">방향과 크기를 계산합니다</span><span class="c-step__d">고객사는 공급 차질(−), 경쟁사는 반사이익(+). 연결 강도만큼 줄어들며 3차까지 퍼집니다.</span></div>
+        <div class="c-panel c-step"><span class="c-step__k">4 · 반영</span><span class="c-step__t">시장이 알았는지 봅니다</span><span class="c-step__d">사건 뒤 초과수익을 평소 변동성과 비교해 반영 완료·진행 중·미반영으로 나눕니다.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 파급 지도 -->
+  <section class="view" id="view-map" hidden>
+    <div class="mapbar">
+      <div class="mapbar__event">
+        <label for="scn" class="c-note">사건</label>
+        <select id="scn" class="c-select"></select>
+        <p class="mapbar__desc" id="desc"></p>
+      </div>
+      <div class="clock">
+        <button id="play" class="c-button" type="button">재생</button>
+        <input id="t" type="range" min="0" max="60" value="0" aria-label="사건 뒤 거래일">
+        <div class="clock__day"><span id="dlabel">D+0</span><span class="clock__date" id="dreal">—</span></div>
+      </div>
+    </div>
+    <div class="statline" id="stats"></div>
+    <div class="mapgrid" style="margin-top:var(--space-3)">
+      <div class="c-panel c-map">
+        <div id="cy" class="c-map__canvas" role="img" aria-label="사건 파급 연결망"></div>
+        <div class="c-map__filters" id="filters"></div>
+        <div class="c-legend">
+          <span><i class="c-dot" style="background:var(--color-harm)"></i>피해 예상</span>
+          <span><i class="c-dot" style="background:var(--color-gain)"></i>수혜 예상</span>
+          <span><i class="c-dot" style="border:2px solid var(--color-watch)"></i>미반영</span>
+          <span><i class="c-dot" style="background:var(--color-odd)"></i>반대로 움직임</span>
+          <span><i class="c-dot" style="background:var(--color-external)"></i>비상장·해외·공공</span>
+          <span>동심원 = 1·2·3차 · 크기 = 영향 크기</span>
+        </div>
+      </div>
+      <aside class="c-panel c-card" id="card" aria-live="polite"></aside>
+    </div>
+    <section class="c-panel c-radar" style="margin-top:var(--space-3)">
+      <h3 class="section-title">미반영 레이더</h3>
+      <p class="c-note" style="margin:0">지금 날짜 기준으로 영향이 크다고 계산됐는데 주가가 아직 움직이지 않은 기업입니다. 과거 사건이라 그 뒤 실제 결과(마지막 날)를 함께 보여 줍니다.</p>
+      <div class="tablewrap"><table class="c-table" id="radar"><thead><tr><th>기업</th><th>차수</th><th>연결</th><th>예상</th><th class="num">지금 초과수익</th><th>상태</th><th class="num">마지막 날 결과</th></tr></thead><tbody></tbody></table></div>
+    </section>
+  </section>
+
+  <!-- 경보 -->
+  <section class="view" id="view-alerts" hidden>
+    <div class="alerts">
+      <div class="c-panel c-watch">
+        <h2 class="section-title">관심 기업</h2>
+        <p class="c-note" style="margin:0">등록한 기업의 1·2·3차 연결에서 사건이 생기면 알립니다. 아래 경보는 과거 사건으로 만든 <b>예시</b>입니다.</p>
+        <label class="c-note" for="watch-in">기업 이름</label>
+        <input id="watch-in" class="c-input" placeholder="예: 삼성전자" list="watch-options">
+        <datalist id="watch-options"></datalist>
+        <div class="c-watch__list" id="watch-list"></div>
+      </div>
+      <div class="feed" id="feed"></div>
+    </div>
+  </section>
+
+  <p class="c-note" id="foot"></p>
+</div>
+
+<script src="app.js"></script>
