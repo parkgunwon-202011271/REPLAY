@@ -1,57 +1,78 @@
-/* 리플 레이더 디자인 토큰 — Figma 토큰(design/tokens.json)과 같은 이름·값을 유지합니다. */
+/* 리플 레이더 디자인 토큰 — 값을 바꿀 곳은 여기 하나. design/tokens.json 과 이름을 맞춤
+   레이아웃 개념: 지도 앱. 화면 전체가 지도(땅·도로), 그 위에 떠 있는 패널·버튼 */
 :root {
-  /* 색: 바탕·면·글자 */
-  --color-bg: #f3f5f7;
+  /* 지도 */
+  --map-ground: #e9ece6;          /* 땅 */
+  --map-ring: #c9cfc4;            /* 파급 차수 등고선 */
+  --map-district: #8c968a;        /* 업종 구역 이름 */
+  --road-major: #f2b84b;          /* 납품 = 큰 도로 */
+  --road-major-casing: #d4952a;
+  --road-minor: #ffffff;          /* 투자 = 일반 도로 */
+  --road-minor-casing: #c3c9cc;
+  --road-rail: #7d878f;           /* 지분 = 철도(점선) */
+  --road-trail: #a7aea6;          /* 경쟁·동조 = 오솔길 */
+  --route: #0b9b6d;               /* 선택한 파급 경로(길찾기 선) */
+  --route-casing: #ffffff;
+
+  /* 화면 */
+  --color-bg: #e9ece6;
   --color-surface: #ffffff;
-  --color-surface-sunken: #eaeef2;
-  --color-ink: #14202b;
-  --color-muted: #5d6b78;
-  --color-line: #d6dde4;
-  /* 색: 의미(영향·상태) */
-  --color-harm: #d6453d;        /* 피해 예상 */
-  --color-gain: #1f7ae0;        /* 수혜 예상 */
-  --color-watch: #c98a00;       /* 미반영·주목 */
-  --color-odd: #8a5cc2;         /* 반대로 움직임 */
-  --color-external: #8796a5;    /* 비상장·해외·공공 */
-  --color-ring: rgba(20, 32, 43, 0.07);
+  --color-surface-2: #f4f6f3;
+  --color-ink: #1b2126;
+  --color-muted: #626d74;
+  --color-line: #e1e5e2;
+  --color-accent: #0b9b6d;        /* 브랜드·선택 */
+  --color-accent-ink: #ffffff;
+  --color-focus: #0b9b6d;
+
+  /* 의미 색(악센트와 별개) */
+  --color-harm: #e0483e;          /* 피해 예상 */
+  --color-gain: #2f6fdb;          /* 수혜 예상 */
+  --color-watch: #e6a100;         /* 미반영 */
+  --color-odd: #8b5cc9;           /* 반대로 움직임 */
+  --color-external: #9aa3a8;      /* 비상장·해외·공공 */
+
+  --shadow-float: 0 1px 2px rgba(20, 30, 25, .18), 0 4px 14px rgba(20, 30, 25, .12);
+  --shadow-panel: 0 2px 6px rgba(20, 30, 25, .14), 0 10px 30px rgba(20, 30, 25, .10);
 
   /* 글꼴 */
-  --font-display: "Gothic A1", "IBM Plex Sans KR", "Apple SD Gothic Neo", sans-serif;
-  --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-display: "Gothic A1", "Noto Sans KR", system-ui, sans-serif;
+  --font-body: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
-  --text-hero: 44px;
-  --text-h1: 26px;
-  --text-h2: 18px;
-  --text-h3: 15px;
-  --text-body: 14px;
-  --text-small: 12.5px;
-  --text-caption: 11.5px;
+  --text-title: 1.375rem;   /* 22 */
+  --text-h2: 1rem;          /* 16 */
+  --text-body: .875rem;     /* 14 */
+  --text-small: .8125rem;   /* 13 */
+  --text-caption: .75rem;   /* 12 */
 
-  /* 간격·모서리·그림자 */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 24px;
-  --space-6: 40px;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-pill: 999px;
-  --shadow-float: 0 6px 24px rgba(20, 32, 43, 0.10);
+  /* 간격·모서리 */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px;
+  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px; --radius-pill: 999px;
+  --panel-w: 384px;
+  --detail-w: 392px;
 }
+
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --color-bg: #0e151c; --color-surface: #151f29; --color-surface-sunken: #101820; --color-ink: #e6edf3;
-    --color-muted: #93a3b2; --color-line: #26333f; --color-harm: #ff6b5e; --color-gain: #4ea3ff;
-    --color-watch: #f2b630; --color-odd: #b48ce8; --color-external: #6f8191; --color-ring: rgba(230, 237, 243, 0.06);
-    --shadow-float: 0 6px 24px rgba(0, 0, 0, 0.45);
+    --map-ground: #1a2026; --map-ring: #33404a; --map-district: #6f7d86;
+    --road-major: #b9852c; --road-major-casing: #5e4314; --road-minor: #3a4652; --road-minor-casing: #222a31;
+    --road-rail: #7a8790; --road-trail: #4b5761; --route: #26c48d; --route-casing: #0f1418;
+    --color-bg: #1a2026; --color-surface: #222a31; --color-surface-2: #1c2329; --color-ink: #e7ecef;
+    --color-muted: #9aa7b0; --color-line: #313b44; --color-accent: #26c48d; --color-accent-ink: #0c1612; --color-focus: #26c48d;
+    --color-harm: #ff6a5c; --color-gain: #5b9bff; --color-watch: #f4b83a; --color-odd: #b58ef0; --color-external: #6d7a84;
+    --shadow-float: 0 1px 2px rgba(0, 0, 0, .5), 0 4px 14px rgba(0, 0, 0, .35);
+    --shadow-panel: 0 2px 6px rgba(0, 0, 0, .5), 0 10px 30px rgba(0, 0, 0, .35);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --color-bg: #0e151c; --color-surface: #151f29; --color-surface-sunken: #101820; --color-ink: #e6edf3;
-  --color-muted: #93a3b2; --color-line: #26333f; --color-harm: #ff6b5e; --color-gain: #4ea3ff;
-  --color-watch: #f2b630; --color-odd: #b48ce8; --color-external: #6f8191; --color-ring: rgba(230, 237, 243, 0.06);
-  --shadow-float: 0 6px 24px rgba(0, 0, 0, 0.45);
+  --map-ground: #1a2026; --map-ring: #33404a; --map-district: #6f7d86;
+  --road-major: #b9852c; --road-major-casing: #5e4314; --road-minor: #3a4652; --road-minor-casing: #222a31;
+  --road-rail: #7a8790; --road-trail: #4b5761; --route: #26c48d; --route-casing: #0f1418;
+  --color-bg: #1a2026; --color-surface: #222a31; --color-surface-2: #1c2329; --color-ink: #e7ecef;
+  --color-muted: #9aa7b0; --color-line: #313b44; --color-accent: #26c48d; --color-accent-ink: #0c1612; --color-focus: #26c48d;
+  --color-harm: #ff6a5c; --color-gain: #5b9bff; --color-watch: #f4b83a; --color-odd: #b58ef0; --color-external: #6d7a84;
+  --shadow-float: 0 1px 2px rgba(0, 0, 0, .5), 0 4px 14px rgba(0, 0, 0, .35);
+  --shadow-panel: 0 2px 6px rgba(0, 0, 0, .5), 0 10px 30px rgba(0, 0, 0, .35);
   color-scheme: dark;
 }

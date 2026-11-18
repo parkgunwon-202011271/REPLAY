@@ -436,7 +436,9 @@ def run_scenario(conn, sc, N_all, E_all, C):
     nodes = []
     for n, v in res.items():
         info = N.get(n, {"id": n, "name": n, "kind": "?"})
-        nodes.append({**info, "mcap": info.get("mcap"), "I": round(v["I"], 4), "hop": v["hop"], "why": explain(v, N), "react": react.get(n)})
+        nodes.append({**info, "mcap": info.get("mcap"), "I": round(v["I"], 4), "hop": v["hop"], "why": explain(v, N), "react": react.get(n),
+                      "route": [{"id": v["path"][i + 1], "type": v.get("types", [""] * 9)[i], "rule": v["why"][i + 1], "ev": v["edges"][i]}
+                                for i in range(len(v["path"]) - 1)]})
     edges = [e for e in E if e["src"] in keep and e["dst"] in keep]
     return {"id": sc["id"], "title": sc["title"], "date": sc["date"], "desc": sc["desc"], "nodes": nodes, "edges": edges,
             "summary": {"n_nodes": len(nodes), "n_edges": len(edges), "by_hop": pd.Series([x["hop"] for x in nodes]).value_counts().sort_index().to_dict(),

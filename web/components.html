@@ -4,99 +4,114 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>리플 레이더 컴포넌트</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&family=Gothic+A1:wght@800;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&family=Gothic+A1:wght@800;900&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="styles/tokens.css">
 <link rel="stylesheet" href="styles/app.css">
 <style>
   /* 컴포넌트 시트: Figma로 가져가 컴포넌트·변형(variant)을 만드는 원본. 한 줄 = 한 컴포넌트, 칸 = 상태 */
-  .sheet { display: flex; flex-direction: column; gap: var(--space-5); padding: var(--space-5); }
+  body { overflow: auto; }
+  .sheet { display: flex; flex-direction: column; gap: var(--space-5); padding-block: var(--space-5); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
   .row { display: flex; flex-direction: column; gap: var(--space-2); }
   .row__name { font: 500 var(--text-caption) var(--font-mono); color: var(--color-muted); }
   .row__items { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
-  .swatch { display: flex; flex-direction: column; gap: var(--space-1); width: 96px; }
+  .box { width: 360px; max-width: 100%; background: var(--color-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-panel); overflow: hidden; }
+  .swatch { display: flex; flex-direction: column; gap: var(--space-1); width: 104px; }
   .swatch__chip { height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--color-line); }
-  .swatch__name { font: 500 var(--text-caption) var(--font-mono); }
-  .node { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); font-size: var(--text-caption); color: var(--color-muted); }
-  .node__dot { width: 28px; height: 28px; border-radius: 50%; }
-  .edge { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-caption); color: var(--color-muted); }
-  .edge__line { width: 48px; border-top: 2px solid var(--color-muted); }
+  .swatch__name { font: 500 var(--text-caption) var(--font-mono); overflow-wrap: anywhere; }
+  .marker { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); font-size: var(--text-caption); color: var(--color-muted); }
+  .marker__dot { width: 28px; height: 28px; border-radius: 50%; }
+  .road { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-caption); color: var(--color-muted); }
+  .road__line { width: 56px; height: 0; border-top: 5px solid; border-radius: 3px; }
 </style>
 </head>
 <body>
 <div class="sheet">
-  <h1 class="brand-name">리플 레이더 · 컴포넌트</h1>
+  <h1 class="brand__name" style="font-size:var(--text-title)">리플 레이더 · 컴포넌트</h1>
 
-  <div class="row"><span class="row__name">color / 의미 색</span><div class="row__items">
+  <div class="row"><span class="row__name">color / 지도</span><div class="row__items">
+    <div class="swatch"><div class="swatch__chip" style="background:var(--map-ground)"></div><span class="swatch__name">map-ground 땅</span></div>
+    <div class="swatch"><div class="swatch__chip" style="background:var(--map-ring)"></div><span class="swatch__name">map-ring 차수 고리</span></div>
+    <div class="swatch"><div class="swatch__chip" style="background:var(--road-major)"></div><span class="swatch__name">road-major 납품</span></div>
+    <div class="swatch"><div class="swatch__chip" style="background:var(--road-minor)"></div><span class="swatch__name">road-minor 투자</span></div>
+    <div class="swatch"><div class="swatch__chip" style="background:var(--road-rail)"></div><span class="swatch__name">road-rail 지분</span></div>
+    <div class="swatch"><div class="swatch__chip" style="background:var(--road-trail)"></div><span class="swatch__name">road-trail 경쟁·동조</span></div>
+    <div class="swatch"><div class="swatch__chip" style="background:var(--route)"></div><span class="swatch__name">route 선택 경로</span></div>
+  </div></div>
+
+  <div class="row"><span class="row__name">color / 의미</span><div class="row__items">
     <div class="swatch"><div class="swatch__chip" style="background:var(--color-harm)"></div><span class="swatch__name">harm 피해</span></div>
     <div class="swatch"><div class="swatch__chip" style="background:var(--color-gain)"></div><span class="swatch__name">gain 수혜</span></div>
     <div class="swatch"><div class="swatch__chip" style="background:var(--color-watch)"></div><span class="swatch__name">watch 미반영</span></div>
     <div class="swatch"><div class="swatch__chip" style="background:var(--color-odd)"></div><span class="swatch__name">odd 반대</span></div>
-    <div class="swatch"><div class="swatch__chip" style="background:var(--color-external)"></div><span class="swatch__name">external 외부</span></div>
-    <div class="swatch"><div class="swatch__chip" style="background:var(--color-ink)"></div><span class="swatch__name">ink</span></div>
-    <div class="swatch"><div class="swatch__chip" style="background:var(--color-surface)"></div><span class="swatch__name">surface</span></div>
-    <div class="swatch"><div class="swatch__chip" style="background:var(--color-bg)"></div><span class="swatch__name">bg</span></div>
+    <div class="swatch"><div class="swatch__chip" style="background:var(--color-external)"></div><span class="swatch__name">external 비상장</span></div>
+    <div class="swatch"><div class="swatch__chip" style="background:var(--color-accent)"></div><span class="swatch__name">accent 브랜드</span></div>
   </div></div>
 
-  <div class="row"><span class="row__name">c-button / default · primary · nav-current</span><div class="row__items">
-    <button class="c-button" type="button">재생</button>
-    <button class="c-button c-button--primary" type="button">파급 지도 열기</button>
-    <a class="c-button c-button--nav" aria-current="page" href="#">파급 지도</a>
-    <a class="c-button c-button--nav" href="#">경보</a>
+  <div class="row"><span class="row__name">map-marker / 방향 × 반영 상태</span><div class="row__items">
+    <div class="marker"><div class="marker__dot" style="background:var(--color-harm);border:4px solid var(--color-surface);box-shadow:var(--shadow-float);border-radius:6px"></div>사건</div>
+    <div class="marker"><div class="marker__dot" style="background:var(--color-harm);border:2.5px solid var(--color-surface)"></div>피해·반영 완료</div>
+    <div class="marker"><div class="marker__dot" style="background:color-mix(in srgb,var(--color-harm) 50%,transparent);border:2.5px solid var(--color-harm)"></div>피해·진행 중</div>
+    <div class="marker"><div class="marker__dot" style="background:color-mix(in srgb,var(--color-gain) 20%,transparent);border:4px solid var(--color-watch)"></div>미반영</div>
+    <div class="marker"><div class="marker__dot" style="background:var(--color-gain);border:2.5px solid var(--color-surface)"></div>수혜·반영 완료</div>
+    <div class="marker"><div class="marker__dot" style="background:var(--color-odd);border:2.5px solid var(--color-surface)"></div>반대로 움직임</div>
+    <div class="marker"><div class="marker__dot" style="background:var(--color-external);border-radius:6px"></div>비상장·외부</div>
+    <div class="marker"><div class="marker__dot" style="background:var(--color-gain);border:6px solid var(--route)"></div>선택됨</div>
   </div></div>
 
-  <div class="row"><span class="row__name">c-chip / 연결 종류 필터 (on · off)</span><div class="row__items">
-    <button class="c-chip" type="button" aria-pressed="true"><span class="c-chip__line"></span>납품</button>
-    <button class="c-chip" type="button" aria-pressed="true"><span class="c-chip__line" style="border-top-style:dashed"></span>투자</button>
-    <button class="c-chip" type="button" aria-pressed="true"><span class="c-chip__line" style="border-top-style:dotted"></span>지분</button>
-    <button class="c-chip" type="button" aria-pressed="false"><span class="c-chip__line"></span>경쟁</button>
-    <button class="c-chip" type="button" aria-pressed="false"><span class="c-chip__line"></span>동조</button>
+  <div class="row"><span class="row__name">map-road / 연결 종류</span><div class="row__items">
+    <span class="road"><span class="road__line" style="border-color:var(--road-major)"></span>납품</span>
+    <span class="road"><span class="road__line" style="border-color:var(--road-minor-casing)"></span>투자</span>
+    <span class="road"><span class="road__line" style="border-color:var(--road-rail);border-top-style:dashed;border-top-width:3px"></span>지분</span>
+    <span class="road"><span class="road__line" style="border-color:var(--road-trail);border-top-style:dashed;border-top-width:2px"></span>경쟁</span>
+    <span class="road"><span class="road__line" style="border-color:var(--road-trail);border-top-style:dotted;border-top-width:2px"></span>동조</span>
+    <span class="road"><span class="road__line" style="border-color:var(--route);border-top-width:7px"></span>선택 경로</span>
   </div></div>
 
-  <div class="row"><span class="row__name">c-pill / 반영 상태</span><div class="row__items">
-    <span class="c-pill c-pill--done">반영 완료</span><span class="c-pill c-pill--moving">진행 중</span>
-    <span class="c-pill c-pill--waiting">미반영</span><span class="c-pill c-pill--odd">반대로 움직임</span><span class="c-pill c-pill--none">비상장</span>
+  <div class="row"><span class="row__name">chip / 레이어 (on · off) · 거르기</span><div class="row__items layers" style="position:static">
+    <button class="chip" type="button" aria-pressed="true"><span class="chip__road" style="color:var(--road-major)"></span>납품 <span class="chip__count">216</span></button>
+    <button class="chip" type="button" aria-pressed="false"><span class="chip__road" style="color:var(--road-trail);border-top-style:dotted"></span>동조 <span class="chip__count">85</span></button>
+    <button class="chip" type="button" aria-pressed="false"><span class="dot" style="background:var(--color-surface);box-shadow:inset 0 0 0 2.5px var(--color-watch)"></span>미반영만</button>
+  </div><div class="row__items">
+    <button class="chip" type="button" aria-pressed="true">미반영 <span class="chip__count">78</span></button>
+    <button class="chip" type="button" aria-pressed="false">반영 완료 <span class="chip__count">7</span></button>
   </div></div>
 
-  <div class="row"><span class="row__name">map-node / 피해·수혜 × 반영 상태</span><div class="row__items">
-    <div class="node"><div class="node__dot" style="background:var(--color-harm)"></div>피해·반영 완료</div>
-    <div class="node"><div class="node__dot" style="background:var(--color-harm);opacity:.55"></div>피해·진행 중</div>
-    <div class="node"><div class="node__dot" style="border:2.5px solid var(--color-watch)"></div>미반영</div>
-    <div class="node"><div class="node__dot" style="background:var(--color-gain)"></div>수혜·반영 완료</div>
-    <div class="node"><div class="node__dot" style="background:var(--color-odd)"></div>반대로 움직임</div>
-    <div class="node"><div class="node__dot" style="background:var(--color-external);border:2px dashed var(--color-ink)"></div>비상장·외부</div>
+  <div class="row"><span class="row__name">pill / 반영 상태</span><div class="row__items">
+    <span class="pill pill--done">반영 완료</span><span class="pill pill--moving">진행 중</span><span class="pill pill--waiting">미반영</span><span class="pill pill--odd">반대로 움직임</span><span class="pill pill--none">주가 없음</span>
   </div></div>
 
-  <div class="row"><span class="row__name">map-edge / 연결 종류</span><div class="row__items">
-    <span class="edge"><span class="edge__line"></span>납품</span>
-    <span class="edge"><span class="edge__line" style="border-top-style:dashed"></span>투자</span>
-    <span class="edge"><span class="edge__line" style="border-top-style:dotted"></span>지분</span>
-    <span class="edge"><span class="edge__line" style="opacity:.5"></span>경쟁</span>
-    <span class="edge"><span class="edge__line" style="opacity:.25;border-top-width:1px"></span>동조</span>
+  <div class="row"><span class="row__name">search / 검색창 + 제안</span><div class="row__items">
+    <div class="search box" style="padding:var(--space-4);overflow:visible">
+      <label class="search__box"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input class="search__input" id="demoQ" value="동진" aria-label="검색 예시"></label>
+      <ul class="suggest" style="position:static;margin-top:var(--space-2)"><li aria-selected="true"><span class="dot" style="background:var(--color-gain)"></span><span class="suggest__name">동진쎄미켐</span><span class="suggest__meta">1차 · 수혜 예상</span></li></ul>
+    </div>
   </div></div>
 
-  <div class="row"><span class="row__name">c-stat</span><div class="row__items">
-    <div class="c-stat"><span class="c-stat__value">3,214</span><span class="c-stat__label">연결망 기업·기관</span></div>
-    <div class="c-stat"><span class="c-stat__value">12,840</span><span class="c-stat__label">연결(선)</span></div>
+  <div class="row"><span class="row__name">place / 목록 행</span><div class="row__items">
+    <ul class="list box">
+      <li><button class="place" type="button"><span class="place__rank" style="background:var(--color-gain)">1</span><span class="place__body"><span class="place__name">솔브레인홀딩스</span><span class="place__meta">1차 · 일반서비스 · <span class="gain">수혜 0.451</span></span></span><span class="place__side"><span class="place__car gain">+42.9%</span><span class="pill pill--done">반영 완료</span></span></button></li>
+      <li><button class="place" type="button"><span class="place__rank" style="background:var(--color-watch)">2</span><span class="place__body"><span class="place__name">SK하이닉스</span><span class="place__meta">1차 · 전기·전자 · <span class="harm">피해 0.433</span></span></span><span class="place__side"><span class="place__car gain">+0.8%</span><span class="pill pill--waiting">미반영</span></span></button></li>
+    </ul>
   </div></div>
 
-  <div class="row"><span class="row__name">c-event / 사건 카드</span><div class="row__items" style="max-width:320px">
-    <button class="c-panel c-event" type="button" style="width:100%"><span class="c-event__date">2019-07-01</span><h3 class="c-event__title">2019 일본 반도체 소재 수출규제</h3>
-      <div class="c-event__nums"><span>영향 기업 <b>312</b></span><span>1·2·3차 <b>11·96·205</b></span></div>
-      <div class="c-bar"><span style="width:22%;background:var(--color-gain)"></span><span style="width:18%;background:var(--color-watch)"></span><span style="width:52%;background:var(--color-line)"></span><span style="width:8%;background:var(--color-odd)"></span></div>
-      <span class="c-note">D+5: 반영 완료 69 · 진행 중 56 · 미반영 162 (예시 수치)</span></button>
+  <div class="row"><span class="row__name">route / 길찾기식 파급 경로</span><div class="row__items">
+    <div class="box" style="padding:var(--space-4)"><ol class="route">
+      <li class="route__stop route__stop--start"><div class="route__rail"><span class="route__pin"></span><span class="route__line"></span></div><div class="route__body"><span class="route__name">일본 반도체 소재 3종 공급</span><span class="route__ev">2019-07-01 사건 발생</span></div></li>
+      <li class="route__stop"><div class="route__rail"><span class="route__pin"></span><span class="route__line"></span></div><div class="route__body"><span class="route__how"><span class="route__type">납품</span><span>고객사: 공급 차질</span></span><button class="route__name" type="button">삼성전자</button><span class="route__ev">사건 정의(수작업): 일본산 소재 의존</span></div></li>
+      <li class="route__stop route__stop--end"><div class="route__rail"><span class="route__pin"></span></div><div class="route__body"><span class="route__how"><span class="route__type">납품</span><span>납품업체: 주문 감소</span></span><button class="route__name" type="button">선도전기</button><span class="route__ev">2013-08-12 공급계약 109억 원(매출 대비 19.07%)</span></div></li>
+    </ol></div>
   </div></div>
 
-  <div class="row"><span class="row__name">c-card / 기업 카드</span><div class="row__items" style="max-width:340px">
-    <aside class="c-panel c-card" style="width:100%"><div><h2 class="c-card__name">동진쎄미켐</h2><div class="c-card__meta">상장 · KOSPI · 화학</div></div>
-      <dl class="c-kv"><dt>차수</dt><dd>1차</dd><dt>예상 영향</dt><dd style="color:var(--color-gain)">수혜 0.360</dd><dt>지금 초과수익</dt><dd>+18.2%</dd>
-        <dt>상태</dt><dd><span class="c-pill c-pill--done">반영 완료</span></dd></dl>
-      <div class="c-why"><b>왜 영향받나</b><br>일본 반도체 소재 3종 공급 → 동진쎄미켐. 경로: 경쟁사: 반사이익. 근거: 사건 정의(수작업): 국내 대체 공급 후보 (예시)</div></aside>
-  </div></div>
-
-  <div class="row"><span class="row__name">c-alert / 경보</span><div class="row__items" style="max-width:640px;width:100%">
-    <div class="c-panel c-alert" style="width:100%"><span class="c-alert__stripe" style="background:var(--color-harm)"></span>
-      <div class="c-alert__body"><span class="c-alert__title">삼성전자: 1차 연결에서 사건</span><span class="c-alert__text">일본 반도체 소재 3종 공급 → 삼성전자. 경로: 고객사: 공급 차질 (예시)</span></div>
-      <span class="c-alert__time">2019-07-01</span></div>
+  <div class="row"><span class="row__name">action · fab · timebar</span><div class="row__items">
+    <button class="action" type="button" aria-pressed="true"><span class="action__icon"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2.5" fill="currentColor"/><circle cx="18" cy="6" r="2.5" fill="currentColor"/><path d="M8.5 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.5" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>경로 보기</button>
+    <button class="action" type="button" aria-pressed="false"><span class="action__icon"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>관심 등록</button>
+    <button class="fab" type="button" aria-label="확대"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+    <div class="timebar" style="position:static;width:520px;max-width:100%">
+      <button class="play" type="button" aria-label="재생"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"/></svg></button>
+      <div class="timebar__day"><span class="timebar__d">D+20</span><span class="timebar__date">2019-07-29</span></div>
+      <div class="timebar__track"><input id="demoDay" type="range" min="0" max="60" value="20" aria-label="거래일 예시"><div class="timebar__ticks"><span>사건일</span><span>D+20</span><span>D+40</span><span>D+60</span></div></div>
+    </div>
   </div></div>
 </div>
 </body>
