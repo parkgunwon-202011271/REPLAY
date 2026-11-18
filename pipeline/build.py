@@ -1,31 +1,28 @@
 """리플 레이더 시제품 파이프라인: 공시 → 관계 추출 → 개체 연결 → 그래프 → 전파 → 주가 반영 → 시나리오 JSON.
 
   python build.py              # 그래프 + 시나리오 3개를 web/data/*.json 으로 내보냄
+데이터는 hackathon/data/ 묶음(pack.py)만 읽습니다. 메인 PC DB 없이 어느 컴퓨터에서나 돌아갑니다.
 LLM(Gemini)은 .env 의 GEMINI_API_KEY 가 있을 때만 '근거 기반 설명'에 씁니다. 없으면 규칙 기반 설명.
 """
 from __future__ import annotations
 
-import json
 import logging
 import re
-import sqlite3
 import sys
 from collections import defaultdict
 from pathlib import Path
 
+import json
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[2]
-SS = ROOT / "stock_system"
-sys.path.insert(0, str(SS))
-from collector.db import DB_PATH  # noqa: E402
-from quant import disclosure as D  # noqa: E402
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+import dartdoc as D  # noqa: E402
+from pack import HOLDOUT, Pack  # noqa: E402,F401
 
 log = logging.getLogger("build")
-WEB = ROOT / "hackathon" / "web" / "data"
-DOCS = SS / "data" / "dart_docs"
-HOLDOUT = "2025-01-01"
+WEB = HERE.parent / "web" / "data"
 LAMBDA, MAX_HOP, MIN_I = 0.6, 4, 0.002
 
 # ---------------------------------------------------------------- 1. 회사 목록·이름 정규화
@@ -49,15 +46,8 @@ ALIAS = {"기아자동차": "기아", "삼성SDI": "삼성SDI", "엘지디스플
 _PARENT_HINT = re.compile(r"(베트남|중국|미국|인도|헝가리|폴란드|멕시코|브라질|슬로바키아|천진|소주|심천|서안|우시|무석|남경|혜주|VIETNAM|CHINA|AMERICA|INDIA|HUNGARY|POLAND|MEXICO|TIANJIN|SUZHOU|XIAN|WUXI|NANJING)", re.I)
 
 
-def companies(conn) -> pd.DataFrame:
-    t = pd.read_sql_query("SELECT symbol, name, market FROM tickers WHERE market IN ('KOSPI','KOSDAQ') AND asset_type='stock'", conn)
-    t["code"] = t["symbol"].str[:6]
-    dc = pd.read_sql_query("SELECT corp_code, corp_name, stock_code FROM dart_corp WHERE stock_code IS NOT NULL AND stock_code <> ''", conn)
-    t = t.merge(dc.rename(columns={"stock_code": "code"}), on="code", how="left")
-    sec = pd.read_sql_query("SELECT code, sector, date FROM krx_sector WHERE date < ?", conn, params=[HOLDOUT.replace("-", "")])
-    sec = sec.sort_values("date").groupby("code").last()["sector"]
-    t["sector"] = t["code"].map(sec).fillna("기타")
-    return t.drop_duplicates("code").set_index("code")
+def companies(pk: Pack) -> pd.DataFrame:
+    return pk.companies()
 
 
 def name_index(C: pd.DataFrame) -> dict:
@@ -102,21 +92,17 @@ def parse_contract(text: str) -> dict:
             "title": re.sub(r"^(기타\s*판매ㆍ공급계약|공사수주|상품공급|제품공급)?\s*-?\s*체결계약명\s*", "", re.sub(r"\s+", " ", title))[:80], "region": region[:40], "cdate": cdate}
 
 
-def contracts(conn) -> pd.DataFrame:
-    rows = pd.read_sql_query("""SELECT d.rcept_no, d.rcept_dt, f.stock_code AS code, f.corp_name FROM dart_docs d
-                                JOIN dart_filings f ON f.rcept_no = d.rcept_no WHERE d.kind='CONTRACT' AND d.status='ok'""", conn)
+def contracts(pk: Pack) -> pd.DataFrame:
     out = []
-    for r in rows.itertuples():
-        p = DOCS / "CONTRACT" / f"{r.rcept_no}.zip"
-        if not p.exists():
-            continue
+    for r in pk.contract_docs().itertuples():
+        p = pk.doc_path("CONTRACT", r.rcept_no)
         rec = parse_contract(D.clean(D.xml_text(p.read_bytes())))
         out.append({"rcept_no": r.rcept_no, "date": pd.Timestamp(r.rcept_dt), "seller": r.code, "seller_name": r.corp_name, **rec})
     return pd.DataFrame(out)
 
 
 # ---------------------------------------------------------------- 3. 그래프
-def build_graph(conn, C):
+def build_graph(pk: Pack, C):
     idx = name_index(C)
     N, E = {}, []
 
@@ -146,7 +132,7 @@ def build_graph(conn, C):
 
     PARENTS = [k for k in idx if len(k) >= 4]
     # (1) 납품: 공급계약
-    K = contracts(conn)
+    K = contracts(pk)
     stats = {"contracts": len(K), "named": 0, "listed_buyer": 0}
     for r in K.itertuples():
         if r.seller not in C.index:
@@ -161,31 +147,27 @@ def build_graph(conn, C):
         E.append({"src": a, "dst": b, "type": "납품", "w": max(w, 0.01), "date": r.date.strftime("%Y-%m-%d"),
                   "ev": f"{r.date:%Y-%m-%d} 공급계약 '{r.title}' {r.amount / 1e8:,.0f}억 원(매출 대비 {r.ratio}%)" if np.isfinite(r.amount) else f"{r.date:%Y-%m-%d} 공급계약", "rno": r.rcept_no})
     # (2) 투자: 제3자배정 유상증자 대상자(이미 받은 원문)
-    ev = pd.read_sql_query("""SELECT d.rcept_no, d.rcept_dt, f.stock_code AS code FROM dart_docs d JOIN dart_filings f ON f.rcept_no=d.rcept_no
-                              WHERE d.kind='SEO' AND d.status='ok'""", conn)
-    for r in ev.itertuples():
-        if r.code not in C.index:
+    for x in pk.allottees().itertuples():
+        if x.code not in C.index:
             continue
-        p = DOCS / "SEO" / f"{r.rcept_no}.zip"
-        if not p.exists():
-            continue
-        rows = D.allottees(D.xml_text(p.read_bytes()))
-        tot = sum((x["shares"] or 0) for x in rows) or 1
-        for x in rows:
-            n = norm(x["name"])
-            if n in idx and idx[n] != r.code:
-                inv = node_listed(idx[n])
-                node_listed(r.code)
-                E.append({"src": inv, "dst": r.code, "type": "투자", "w": max((x["shares"] or 0) / tot, 0.01), "date": f"{r.rcept_dt[:4]}-{r.rcept_dt[4:6]}-{r.rcept_dt[6:]}",
-                          "ev": f"{r.rcept_dt[:4]}.{r.rcept_dt[4:6]} 제3자배정 유상증자 참여({x['rlt'] or '관계 표시 없음'})", "rno": r.rcept_no})
+        n = norm(x.name)
+        if n in idx and idx[n] != x.code:
+            inv = node_listed(idx[n])
+            node_listed(x.code)
+            sh = float(x.shares) if pd.notna(x.shares) else 0.0
+            tot = float(x.tot_shares) if pd.notna(x.tot_shares) and x.tot_shares else 1.0
+            rlt = x.rlt if isinstance(x.rlt, str) and x.rlt else "관계 표시 없음"
+            E.append({"src": inv, "dst": x.code, "type": "투자", "w": max(sh / tot, 0.01), "date": f"{x.rcept_dt[:4]}-{x.rcept_dt[4:6]}-{x.rcept_dt[6:]}",
+                      "ev": f"{x.rcept_dt[:4]}.{x.rcept_dt[4:6]} 제3자배정 유상증자 참여({rlt})", "rno": x.rcept_no})
     # (3) 지분: 타법인출자현황
     corp2code = {r["corp_code"]: c for c, r in C.iterrows() if isinstance(r.get("corp_code"), str)}
-    for cc, payload in conn.execute("SELECT corp_code, payload FROM dart_struct WHERE kind='OWN'"):
+    for it in pk.own().itertuples():
+        cc = it.corp_code
         if cc not in corp2code:
             continue
-        for it in json.loads(payload):
-            nm = it.get("inv_prm", "")
-            q = it.get("trmend_blce_qota_rt", "") or ""
+        if True:
+            nm = it.inv_prm if isinstance(it.inv_prm, str) else ""
+            q = it.qota_rt if pd.notna(it.qota_rt) else ""
             try:
                 qr = float(str(q).replace(",", ""))
             except ValueError:
@@ -202,11 +184,8 @@ def build_graph(conn, C):
     return N, E, stats
 
 
-def mcap_asof(codes, asof: pd.Timestamp) -> dict:
-    from quant.panel import marcap_panels
-    mc = marcap_panels({c: c for c in codes}, (asof - pd.Timedelta(days=12)).strftime("%Y-%m-%d"), asof.strftime("%Y-%m-%d"))["marcap"]
-    last = mc.ffill().iloc[-1] if len(mc) else pd.Series(dtype=float)
-    return {c: float(v) for c, v in last.items() if np.isfinite(v)}
+def mcap_asof(pk: Pack, codes, asof: pd.Timestamp) -> dict:
+    return pk.mcap_asof(codes, asof)
 
 
 def add_compete(N, E, k=3, corr=None):
@@ -297,28 +276,15 @@ def propagate(seeds: dict, E: list, kinds=None):
 
 
 # ---------------------------------------------------------------- 5. 주가 반영
-def prices(conn, codes, start, end):
-    from collector.db import get_close_matrix
-    syms = []
-    for c in codes:
-        syms += [f"{c}.KS", f"{c}.KQ"]
-    px = get_close_matrix(conn, syms, start=start, col="adj_close")
-    px = px[px.index < pd.Timestamp(HOLDOUT)]
-    px = px.loc[:end]
-    out = {}
-    for c in codes:
-        cols = [s for s in (f"{c}.KS", f"{c}.KQ") if s in px.columns]
-        if cols:
-            out[c] = px[cols].bfill(axis=1).iloc[:, 0]
-    bm = get_close_matrix(conn, ["^KS11", "^KQ11"], start=start, col="close").loc[:end]
-    return pd.DataFrame(out), bm
+def prices(pk: Pack, codes, start, end):
+    return pk.prices(codes, start, end), pk.bench(start, end)
 
 
-def reactions(conn, res, N, t0: str, days=60):
+def reactions(pk: Pack, res, N, t0: str, days=60):
     codes = [n for n in res if not n.startswith("X:")]
     start = (pd.Timestamp(t0) - pd.Timedelta(days=420)).strftime("%Y-%m-%d")
     end = (pd.Timestamp(t0) + pd.Timedelta(days=120)).strftime("%Y-%m-%d")
-    P, BM = prices(conn, codes, start, end)
+    P, BM = prices(pk, codes, start, end)
     r = P.pct_change(fill_method=None)
     rb = BM.pct_change()
     pre = r[r.index < pd.Timestamp(t0)].tail(250)
@@ -372,7 +338,7 @@ SCENARIOS = [
 ]
 
 
-def auto_scenario(conn, N, E):
+def auto_scenario(pk: Pack, N, E):
     """생산중단·재해발생 공시(2016-01~2019-06) 가운데 연결망에서 연결이 가장 많은 회사의 사건을 자동 선택."""
     deg, sup = defaultdict(int), defaultdict(int)
     for e in E:
@@ -382,8 +348,7 @@ def auto_scenario(conn, N, E):
         if e["type"] == "납품":                                          # 공급망 연결(납품)이 많은 사건을 우선
             sup[e["src"]] += 1
             sup[e["dst"]] += 1
-    ev = pd.read_sql_query("""SELECT rcept_dt, stock_code AS code, corp_name, trim(report_nm) AS nm FROM dart_filings
-                              WHERE (trim(report_nm) IN ('생산중단', '재해발생')) AND rcept_dt BETWEEN '20160101' AND '20190630'""", conn)
+    ev = pk.events(("생산중단", "재해발생"), "20160101", "20190630")
     ev = ev[ev["code"].isin([n for n in N if not n.startswith("X:")])]
     if not len(ev):
         return None
@@ -396,7 +361,7 @@ def auto_scenario(conn, N, E):
             "desc": f"{d} DART '{r.nm}' 공시를 파이프라인이 자동으로 골라 연결망(직접 연결 {int(r.deg)}개, 그중 납품 {int(r.sup)}개)에 얹은 사례", "seeds": {r.code: -1.0}}
 
 
-def run_scenario(conn, sc, N_all, E_all, C):
+def run_scenario(pk: Pack, sc, N_all, E_all, C):
     asof = pd.Timestamp(sc["asof"])
     E = [e for e in E_all if e["date"] and pd.Timestamp(e["date"]) <= asof]   # 사건 전 정보만(경쟁·동조는 시나리오에서 새로 만듦)
     N = dict(N_all)
@@ -420,10 +385,10 @@ def run_scenario(conn, sc, N_all, E_all, C):
         for s in list(seeds):
             E.append({"src": s, "dst": key, "type": "경쟁", "w": w, "date": "", "ev": "사건 정의(수작업): 주요 경쟁사", "rno": ""})
     listed = [n for n in N if not n.startswith("X:")]
-    mc = mcap_asof(listed, asof)
+    mc = mcap_asof(pk, listed, asof)
     for c in listed:
         N[c] = {**N[c], "mcap": mc.get(c)}
-    P, BMp = prices(conn, listed, (asof - pd.Timedelta(days=380)).strftime("%Y-%m-%d"), asof.strftime("%Y-%m-%d"))
+    P, BMp = prices(pk, listed, (asof - pd.Timedelta(days=380)).strftime("%Y-%m-%d"), asof.strftime("%Y-%m-%d"))
     R = P.pct_change(fill_method=None)
     mkt = BMp["^KS11"].pct_change(fill_method=None).reindex(R.index)
     X = R.sub(mkt, axis=0).dropna(axis=1, thresh=150)                 # 코스피 대비 초과 수익
@@ -431,7 +396,7 @@ def run_scenario(conn, sc, N_all, E_all, C):
     add_compete(N, E, corr=corr)
     add_comove(N, E, corr)
     res = propagate(seeds, E)
-    react = reactions(conn, res, N, sc["date"])
+    react = reactions(pk, res, N, sc["date"])
     keep = set(res)
     nodes = []
     for n, v in res.items():
@@ -447,16 +412,16 @@ def run_scenario(conn, sc, N_all, E_all, C):
 
 def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%H:%M:%S")
-    conn = sqlite3.connect(DB_PATH, timeout=60)
-    C = companies(conn)
-    N, E, stats = build_graph(conn, C)
+    pk = Pack()
+    C = companies(pk)
+    N, E, stats = build_graph(pk, C)
     log.info("그래프: 노드 %d, 선 %d (%s) | 공급계약 %d건 중 상대방 연결 %d, 상장 구매자 %d", len(N), len(E),
              pd.Series([e["type"] for e in E]).value_counts().to_dict(), stats["contracts"], stats["named"], stats["listed_buyer"])
     WEB.mkdir(parents=True, exist_ok=True)
     out_index = []
-    auto = auto_scenario(conn, N, E)
+    auto = auto_scenario(pk, N, E)
     for sc in SCENARIOS + ([auto] if auto else []):
-        S = run_scenario(conn, sc, N, E, C)
+        S = run_scenario(pk, sc, N, E, C)
         (WEB / f"{sc['id']}.json").write_text(json.dumps(S, ensure_ascii=False, default=str), encoding="utf-8")
         out_index.append({"id": sc["id"], "title": sc["title"], "date": sc["date"], **S["summary"]})
         log.info("시나리오 %s: %s", sc["id"], S["summary"])

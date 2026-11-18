@@ -12,6 +12,9 @@
 - 새 주제로 참가하는 것은 팀원 합의 완료(2026-11-18).
 
 ## 실행 환경
-- **웹앱(`web/`)**: 결과 데이터(`web/data/*.json`)가 저장소에 들어 있어 이것만으로 돌아갑니다. `cd web && python -m http.server 8000` 후 `http://localhost:8000/#japan2019`.
-- **파이프라인(`pipeline/`)**: 메인 PC의 연구 저장소 안에서만 돌아갑니다. 주가·공시 DB(`stocks.db`)와 연구 저장소의 `collector`, `quant` 모듈을 씁니다. 다른 컴퓨터에서는 웹앱과 문서 작업만 합니다.
+- **데이터는 저장소에 들어 있습니다**(`data/`, 약 55MB, 2024년까지). 따로 받을 것이 없습니다. 구성과 **추가 수집 방법**은 [DATA.md](DATA.md).
+- **웹앱(`web/`)**: `cd web && python -m http.server 8000` 후 `http://localhost:8000/#japan2019`.
+- **파이프라인(`pipeline/`)**: `pip install -r requirements.txt` 후 `python pipeline/build.py` → `web/data/*.json`을 다시 만듭니다.
+  - `collect.py`: DART 원문 추가 수집(어느 컴퓨터에서나, DART 인증키 필요)
+  - `make_pack.py`: 데이터 묶음 재생성(메인 PC 전용, 주가 DB 필요)
 - 인증 정보(DART·Gemini 키)는 저장소에 넣지 않고 `.env`에만 둡니다.
